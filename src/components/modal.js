@@ -1,9 +1,3 @@
-import {
-  fullOpenImage,
-  captionFullOpenImage,
-  popupTypeImage,
-} from "../scripts/index.js";
-
 // Функция открытия модального окна
 
 export function openModal(popup) {
@@ -11,15 +5,6 @@ export function openModal(popup) {
   document.addEventListener("keydown", closePopupEsc);
 }
 
-export function openModalFullImage(img, title) {
-  fullOpenImage.src = img.src;
-  fullOpenImage.alt = img.alt;
-  captionFullOpenImage.textContent = title.textContent;
-  openModal(popupTypeImage);
-}
-
-//
-//
 //Функция закрытия окна: при нажатии на Esc, на крестик и на оверлей
 
 export function closeModal(popup) {

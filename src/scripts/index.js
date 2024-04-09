@@ -3,23 +3,20 @@ import { initialCards } from "../scripts/cards.js";
 import { createCard, deleteCard, likeCard } from "../components/card.js";
 import {
   openModal,
-  openModalFullImage,
   closeModal,
   closePopupOverlay,
   closePopupCross,
 } from "../components/modal.js";
 
-export const cardTemplate = document.querySelector("#card-template").content;
 const cardsContainer = document.querySelector(".places__list");
 
-const popupMainClass = document.querySelectorAll(".popup");
+const popups = document.querySelectorAll(".popup");
 const popupTypeEdit = document.querySelector(".popup_type_edit");
 const popupTypeNewCard = document.querySelector(".popup_type_new-card");
-export const popupTypeImage = document.querySelector(".popup_type_image");
+const popupTypeImage = document.querySelector(".popup_type_image");
 
-export const fullOpenImage = popupTypeImage.querySelector(".popup__image");
-export const captionFullOpenImage =
-  popupTypeImage.querySelector(".popup__caption");
+const fullOpenImage = popupTypeImage.querySelector(".popup__image");
+const captionFullOpenImage = popupTypeImage.querySelector(".popup__caption");
 
 const openPopupEditBtn = document.querySelector(".profile__edit-button");
 const openPopupAddBtn = document.querySelector(".profile__add-button");
@@ -47,18 +44,23 @@ initialCards.forEach((item) => {
   cardsContainer.append(card);
 });
 
+// Функция для открытия модального окна с изображением
+
+function openModalFullImage(img, title) {
+  fullOpenImage.src = img.src;
+  fullOpenImage.alt = img.alt;
+  captionFullOpenImage.textContent = title.textContent;
+  openModal(popupTypeImage);
+}
+
 // Добавление класса для плавной анимации всем модальным окнам
 
-popupMainClass.forEach((item) => item.classList.add("popup_is-animated"));
+popups.forEach((item) => item.classList.add("popup_is-animated"));
 
 // Закрытие модальных окон по нажатию на крестик и оверлей
 
-popupMainClass.forEach((item) =>
-  item.addEventListener("click", closePopupOverlay)
-);
-popupMainClass.forEach((item) =>
-  item.addEventListener("click", closePopupCross)
-);
+popups.forEach((item) => item.addEventListener("click", closePopupOverlay));
+popups.forEach((item) => item.addEventListener("click", closePopupCross));
 
 // Обработка клика по кнопкам редактирования профиля и добавления новой карточки
 
