@@ -1,10 +1,5 @@
 import "../pages/index.css";
-import {
-  createCard,
-  likeCard,
-  popupTypeDeleteCard,
-  clickedCardId,
-} from "../components/card.js";
+import { createCard, likeCard } from "../components/card.js";
 import {
   openModal,
   closeModal,
@@ -13,42 +8,47 @@ import {
 } from "../components/modal.js";
 import {
   validationConfig,
+  showInputError,
+  hideInputError,
   enableValidation,
   clearValidation,
 } from "../components/validation.js";
 import { apiRequest, catchError } from "../components/api.js";
 
-const cardsContainer = document.querySelector(".places__list");
+const containerCards = document.querySelector(".places__list");
 
 const popups = document.querySelectorAll(".popup");
 const popupTypeEdit = document.querySelector(".popup_type_edit");
 const popupTypeNewCard = document.querySelector(".popup_type_new-card");
 const popupTypeImage = document.querySelector(".popup_type_image");
 const popupTypeAvatar = document.querySelector(".popup_type_avatar");
+const popupTypeDeleteCard = document.querySelector(".popup_type_delete-card");
 
-const openPopupEditBtn = document.querySelector(".profile__edit-button");
-const openPopupAddBtn = document.querySelector(".profile__add-button");
+const buttonOpenPopupProfile = document.querySelector(".profile__edit-button");
+const buttonOpenPopupAddCard = document.querySelector(".profile__add-button");
 
 const formEditProfile = document.forms["edit-profile"];
-const nameProfileInput = formEditProfile.elements.name;
-const jobProfileInput = formEditProfile.elements.description;
+const inputNameProfile = formEditProfile.elements.name;
+const inputDescriptionProfile = formEditProfile.elements.description;
 
 const formAddNewCard = document.forms["new-place"];
-const nameCardInput = formAddNewCard.elements["place-name"];
-const linkCardInput = formAddNewCard.elements.link;
+const inputNameCard = formAddNewCard.elements["place-name"];
+const inputLinkCard = formAddNewCard.elements.link;
 
 const formDeleteCard = document.forms["delete-card"];
 
 const formNewAvatar = document.forms.avatar;
-const avatarLinkInput = formNewAvatar.elements["avatar-link"];
+const inputLinkAvatar = formNewAvatar.elements["avatar-link"];
 
 const profileInfo = document.querySelector(".profile__info");
 const profileImage = document.querySelector(".profile__image");
 const profileTitle = profileInfo.querySelector(".profile__title");
 const profileDescription = profileInfo.querySelector(".profile__description");
 
-const fullOpenImage = popupTypeImage.querySelector(".popup__image");
-const captionFullOpenImage = popupTypeImage.querySelector(".popup__caption");
+const buttonOpenFullImage = popupTypeImage.querySelector(".popup__image");
+const captionFullImage = popupTypeImage.querySelector(".popup__caption");
+
+let idClickedCard = "0";
 
 //
 
@@ -60,17 +60,22 @@ Promise.all([
   apiRequest({
     url: "cards",
     method: "GET",
-  }).then((res) => requestCards(res)),
+  }),
 
   apiRequest({
     url: "users/me",
     method: "GET",
-  }).then((res) => requestProfile(res)),
-]).catch(catchError);
+  }),
+])
+  .then(([infoCards, infoProfile]) => {
+    setDataProfile(infoProfile);
+    setDataCards(infoCards, infoProfile._id);
+  })
+  .catch(catchError);
 
 // Вывод информации профиля
 
-function requestProfile(res) {
+function setDataProfile(res) {
   profileInfo.dataset.userId = res._id;
   profileImage.style.backgroundImage = `url(${res.avatar})`;
   profileTitle.textContent = res.name;
@@ -79,16 +84,17 @@ function requestProfile(res) {
 
 // Вывод карточек на страницу
 
-function requestCards(res) {
+function setDataCards(res, ownerId) {
   res.forEach((card) => {
-    cardsContainer.append(
+    containerCards.append(
       createCard(
         {
           card: card,
           likeCard,
           openModalFullImage,
+          clickButtonDeleteCard,
         },
-        profileInfo.dataset.userId
+        ownerId
       )
     );
   });
@@ -97,9 +103,9 @@ function requestCards(res) {
 // Функция для открытия модального окна с изображением
 
 function openModalFullImage(img, title) {
-  fullOpenImage.src = img.src;
-  fullOpenImage.alt = img.alt;
-  captionFullOpenImage.textContent = title.textContent;
+  buttonOpenFullImage.src = img.src;
+  buttonOpenFullImage.alt = img.alt;
+  captionFullImage.textContent = title.textContent;
   openModal(popupTypeImage);
 }
 
@@ -114,13 +120,13 @@ popups.forEach((item) => item.addEventListener("click", closePopupCross));
 
 // Обработка клика по кнопкам редактирования профиля, добавления новой карточки и аватара
 
-openPopupEditBtn.addEventListener("click", () => {
+buttonOpenPopupProfile.addEventListener("click", () => {
   openModal(popupTypeEdit);
   fillFormEditProfile();
   clearValidation(formEditProfile, validationConfig);
 });
 
-openPopupAddBtn.addEventListener("click", () => {
+buttonOpenPopupAddCard.addEventListener("click", () => {
   formAddNewCard.reset();
   openModal(popupTypeNewCard);
   clearValidation(formAddNewCard, validationConfig);
@@ -136,60 +142,76 @@ profileImage.addEventListener("click", () => {
 
 function handleFormEditSubmit(evt) {
   evt.preventDefault();
-  renderLoading(true, evt);
+  renderLoading(evt, "Сохранение...");
 
   apiRequest({
     url: "users/me",
     method: "PATCH",
     body: {
-      name: nameProfileInput.value,
-      about: jobProfileInput.value,
+      name: inputNameProfile.value,
+      about: inputDescriptionProfile.value,
     },
   })
-    .then((res) => requestProfile(res))
-    .catch(catchError)
-    .finally(() => renderLoading(false, evt));
-  closeModal(popupTypeEdit);
+    .then((res) => {
+      setDataProfile(res);
+      closeModal(popupTypeEdit);
+    })
+    .catch((err) => {
+      showInputError(
+        formEditProfile,
+        inputDescriptionProfile,
+        `Ошибка сервера: ${err}`,
+        validationConfig
+      );
+    })
+    .finally(() => renderLoading(evt));
 }
 
 formEditProfile.addEventListener("submit", handleFormEditSubmit);
 
 function fillFormEditProfile() {
-  nameProfileInput.value = profileTitle.textContent;
-  jobProfileInput.value = profileDescription.textContent;
+  inputNameProfile.value = profileTitle.textContent;
+  inputDescriptionProfile.value = profileDescription.textContent;
 }
 
 // Добавление новой карточки
 
 function handleFormNewCardSubmit(evt) {
   evt.preventDefault();
-  renderLoading(true, evt);
+  renderLoading(evt, "Сохранение...");
 
   apiRequest({
     url: "cards",
     method: "POST",
     body: {
-      name: nameCardInput.value,
-      link: linkCardInput.value,
+      name: inputNameCard.value,
+      link: inputLinkCard.value,
     },
   })
-    .then((card) =>
-      cardsContainer.append(
+    .then((card) => {
+      containerCards.prepend(
         createCard(
           {
             card: card,
             likeCard,
             openModalFullImage,
+            clickButtonDeleteCard,
           },
           profileInfo.dataset.userId
         )
-      )
-    )
-    .catch(catchError)
-    .finally(() => renderLoading(false, evt));
-
-  formAddNewCard.reset();
-  closeModal(popupTypeNewCard);
+      );
+      formAddNewCard.reset();
+      closeModal(popupTypeNewCard);
+    })
+    .catch((err) => {
+      showInputError(
+        formAddNewCard,
+        inputLinkCard,
+        `Ошибка сервера: ${err}`,
+        validationConfig
+      );
+    })
+    .finally(() => renderLoading(evt));
 }
 
 formAddNewCard.addEventListener("submit", handleFormNewCardSubmit);
@@ -198,62 +220,70 @@ formAddNewCard.addEventListener("submit", handleFormNewCardSubmit);
 
 function handleAvatarSubmit(evt) {
   evt.preventDefault();
-  renderLoading(true, evt);
+  renderLoading(evt, "Сохранение...");
 
   apiRequest({
     url: "users/me/avatar",
     method: "PATCH",
     body: {
-      avatar: avatarLinkInput.value,
+      avatar: inputLinkAvatar.value,
     },
   })
-    .then((res) => requestProfile(res))
-    .catch(catchError)
-    .finally(() => renderLoading(false, evt));
-
-  closeModal(popupTypeAvatar);
+    .then((res) => {
+      setDataProfile(res);
+      closeModal(popupTypeAvatar);
+    })
+    .catch((err) => {
+      showInputError(
+        formNewAvatar,
+        inputLinkAvatar,
+        `Ошибка сервера: ${err}`,
+        validationConfig
+      );
+    })
+    .finally(() => renderLoading(evt));
 }
 
 formNewAvatar.addEventListener("submit", handleAvatarSubmit);
 
 // Функция загрузки при ожидании ответа от сервера
 
-function renderLoading(
-  isLoading,
-  evt,
-  btnInitialText = "Сохранить",
-  btnloadingText = "Сохранение..."
-) {
-  const btn = evt.submitter;
-  if (isLoading) {
-    btn.textContent = btnloadingText;
-  } else {
-    btn.textContent = btnInitialText;
-  }
+function renderLoading(evt, buttonText = "Сохранить") {
+  const button = evt.submitter;
+  button.textContent = buttonText;
+}
+
+// Обработчика нажатия на кнопку удаления
+
+function clickButtonDeleteCard(deleteButton, card, cardElement) {
+  deleteButton.addEventListener("click", () => {
+    idClickedCard = card._id;
+    cardElement.id = idClickedCard;
+    openModal(popupTypeDeleteCard);
+  });
 }
 
 // Удаление карточки при согласии
 
-function handleDeleteCardSubmit(
-  evt,
-  btnInitialText = "Да",
-  btnloadingText = "Удаление..."
-) {
+function handleDeleteCardSubmit(evt) {
   evt.preventDefault();
-
-  renderLoading(true, evt, btnInitialText, btnloadingText);
+  renderLoading(evt, "Удаление...");
 
   apiRequest({
-    url: `cards/${clickedCardId}`,
+    url: `cards/${idClickedCard}`,
     method: "DELETE",
   })
     .then((card) => {
-      card = document.getElementById(clickedCardId);
-      card.remove;
+      card = document.getElementById(idClickedCard);
+      card.remove();
+      closeModal(popupTypeDeleteCard);
     })
-    .catch(catchError)
-    .finally(() => renderLoading(false, evt, btnInitialText));
-  closeModal(popupTypeDeleteCard);
+    .catch((err) => {
+      const errorMessage = document.querySelector(".delete-card-error");
+      errorMessage.textContent = `Ошибка сервера: ${err}`;
+      errorMessage.classList.add(validationConfig.errorClass);
+    })
+    .finally(() => renderLoading(evt, "Да"));
 }
 
 formDeleteCard.addEventListener("submit", handleDeleteCardSubmit);

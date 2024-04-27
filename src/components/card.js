@@ -1,12 +1,6 @@
-import { closeModal, openModal } from "./modal.js";
 import { apiRequest, catchError } from "../components/api.js";
 
 const cardTemplate = document.querySelector("#card-template").content;
-
-export const popupTypeDeleteCard = document.querySelector(
-  ".popup_type_delete-card"
-);
-export let clickedCardId = "0";
 
 // Функция создания карточки
 
@@ -17,9 +11,9 @@ export function createCard(cardConfig, ownerId) {
   img.src = cardConfig.card.link;
   img.alt = cardConfig.card.name;
 
-  img.addEventListener("click", () =>
-    cardConfig.openModalFullImage(img, title)
-  );
+  img.addEventListener("click", () => {
+    cardConfig.openModalFullImage(img, title);
+  });
 
   const title = cardElement.querySelector(".card__title");
   title.textContent = cardConfig.card.name;
@@ -28,11 +22,11 @@ export function createCard(cardConfig, ownerId) {
   if (cardConfig.card.owner._id !== ownerId) {
     deleteButton.remove();
   } else {
-    deleteButton.addEventListener("click", () => {
-      clickedCardId = cardConfig.card._id;
-      cardElement.id = clickedCardId;
-      openModal(popupTypeDeleteCard);
-    });
+    cardConfig.clickButtonDeleteCard(
+      deleteButton,
+      cardConfig.card,
+      cardElement
+    );
   }
 
   const likeBtn = cardElement.querySelector(".card__like-button");

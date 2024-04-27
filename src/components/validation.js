@@ -9,7 +9,7 @@ export const validationConfig = {
 
 // Функции для показа и скрытия ошибок
 
-function showInputError(
+export function showInputError(
   formElement,
   inputElement,
   errorMessage,
@@ -23,7 +23,7 @@ function showInputError(
   errorElement.classList.add(validationConfig.errorClass);
 }
 
-function hideInputError(formElement, inputElement) {
+export function hideInputError(formElement, inputElement) {
   const errorElement = formElement.querySelector(`.${inputElement.id}-error`);
 
   inputElement.classList.remove(validationConfig.inputErrorClass);
