@@ -1,38 +1,85 @@
+import { closeModal, openModal } from "./modal.js";
+import { apiRequest, catchError } from "../components/api.js";
+
 const cardTemplate = document.querySelector("#card-template").content;
+
+export const popupTypeDeleteCard = document.querySelector(
+  ".popup_type_delete-card"
+);
+export let clickedCardId = "0";
 
 // Функция создания карточки
 
-export function createCard(cardConfig) {
+export function createCard(cardConfig, ownerId) {
   const cardElement = cardTemplate.querySelector(".card").cloneNode(true);
 
   const img = cardElement.querySelector(".card__image");
   img.src = cardConfig.card.link;
   img.alt = cardConfig.card.name;
 
+  img.addEventListener("click", () =>
+    cardConfig.openModalFullImage(img, title)
+  );
+
   const title = cardElement.querySelector(".card__title");
   title.textContent = cardConfig.card.name;
 
   const deleteButton = cardElement.querySelector(".card__delete-button");
-  deleteButton.addEventListener("click", () =>
-    cardConfig.deleteCard(cardElement)
-  );
+  if (cardConfig.card.owner._id !== ownerId) {
+    deleteButton.remove();
+  } else {
+    deleteButton.addEventListener("click", () => {
+      clickedCardId = cardConfig.card._id;
+      cardElement.id = clickedCardId;
+      openModal(popupTypeDeleteCard);
+    });
+  }
 
   const likeBtn = cardElement.querySelector(".card__like-button");
-  likeBtn.addEventListener("click", () => cardConfig.likeCard(likeBtn));
+  const likeAmount = cardElement.querySelector(".card__like-amount");
 
-  img.addEventListener("click", () =>
-    cardConfig.openModalFullImage(img, title)
+  likeAmount.textContent =
+    cardConfig.card.likes.length === 0 ? "0" : cardConfig.card.likes.length;
+
+  if (
+    cardConfig.card.likes.some((like) => {
+      return like._id === ownerId;
+    })
+  ) {
+    likeBtn.classList.add("card__like-button_is-active");
+  }
+
+  likeBtn.addEventListener("click", () =>
+    cardConfig.likeCard(cardConfig.card, likeBtn, likeAmount)
   );
 
   return cardElement;
 }
 
-// Функция удаления карточки и лайк
+// Функция лайка
 
-export function deleteCard(card) {
-  card.remove();
-}
-
-export function likeCard(like) {
-  like.classList.toggle("card__like-button_is-active");
+export function likeCard(card, likeBtn, likeAmount) {
+  if (likeBtn.classList.contains("card__like-button_is-active")) {
+    apiRequest({
+      url: `cards/likes/${card._id}`,
+      method: "DELETE",
+    })
+      .then((res) => {
+        likeBtn.classList.remove("card__like-button_is-active");
+        likeAmount.textContent =
+          res.likes.length === 0 ? "0" : res.likes.length;
+      })
+      .catch(catchError);
+  } else {
+    apiRequest({
+      url: `cards/likes/${card._id}`,
+      method: "PUT",
+    })
+      .then((res) => {
+        likeBtn.classList.add("card__like-button_is-active");
+        likeAmount.textContent =
+          res.likes.length === 0 ? "0" : res.likes.length;
+      })
+      .catch(catchError);
+  }
 }

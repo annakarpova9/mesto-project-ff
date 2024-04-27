@@ -1,7 +1,10 @@
 .card__image {
+  display: block;
   height: 282px;
+  inline-size: 100%;
+  aspect-ratio: 1/1;
   object-fit: cover;
-  width: 100%;
+  object-position: center;
 }
 
 .card__image:hover {
